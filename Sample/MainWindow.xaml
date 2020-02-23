@@ -1,0 +1,20 @@
+﻿<Window x:Class="Sample.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Sample"
+        mc:Ignorable="d"
+        Title="Age Estimator Sample" Height="214.676" Width="580">
+    <Grid x:Name="FrmMain" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+        <Button x:Name="BtnPredict" Content="Predict" HorizontalAlignment="Left" Margin="26,137,0,0" Width="85" Height="20" VerticalAlignment="Top" Click="BtnPredict_Click"/>
+        <Button x:Name="BtnLoad" Content="Load Image" HorizontalAlignment="Left" Margin="26,40,0,0" VerticalAlignment="Top" Width="85" Click="BtnLoadImage_Click"/>
+        <TextBox x:Name="TbtImgSrc" HorizontalAlignment="Left" Height="23" Margin="121,40,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="405"/>
+        <RadioButton x:Name="RdGenderOpt" GroupName="PredictOption" Content="Gender" HorizontalAlignment="Left" Margin="121,140,0,0" VerticalAlignment="Top" Checked="PredictionOptionChecked"/>
+        <RadioButton x:Name="RdAgeOpt" GroupName="PredictOption" Content="Age" HorizontalAlignment="Left" Margin="196,140,0,0" VerticalAlignment="Top" Checked="PredictionOptionChecked"/>
+        <RadioButton x:Name="RdBoth" GroupName="PredictOption" Content="Both" HorizontalAlignment="Left" Margin="258,140,0,0" VerticalAlignment="Top" IsChecked="True" Checked="PredictionOptionChecked"/>
+        <Label x:Name="LblFaceDetectionMethod" Content="Face detection method" HorizontalAlignment="Left" Margin="26,76,0,0" VerticalAlignment="Top"/>
+        <RadioButton x:Name="RdHogMethod" GroupName="FaceDetectionOption" Content="HOG Feature" HorizontalAlignment="Left" Margin="196,83,0,0" VerticalAlignment="Top" IsChecked="True" Checked="FaceDetectionOptionChecked"/>
+        <RadioButton x:Name="RdHaarMethod" GroupName="FaceDetectionOption" Content="Haar Cascade" HorizontalAlignment="Left" Margin="196,104,0,0" VerticalAlignment="Top" Checked="FaceDetectionOptionChecked"/>
+    </Grid>
+</Window>
