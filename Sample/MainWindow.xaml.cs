@@ -26,35 +26,44 @@ namespace Sample
         private readonly ILocatable _hogLocator;
         private readonly ILocatable _haarLocator;
         private readonly IAnnotation _annotator;
+        private readonly string _ageInputNode;
+        private readonly string _ageOutputNode;
+        private readonly string _genderInputNode;
+        private readonly string _genderOutputNode;
 
         public MainWindow()
         {
             try
             {
+                _ageInputNode = ConfigurationManager.AppSettings["ageinputnode"];
+                _ageOutputNode = ConfigurationManager.AppSettings["ageoutputnode"];
+                _genderInputNode = ConfigurationManager.AppSettings["genderinputnode"];
+                _genderOutputNode = ConfigurationManager.AppSettings["genderoutputnode"];
+
                 var ageModelPath = ConfigurationManager.AppSettings["agemodelpath"];
-                _ageRunner = new PbRunnerWithWarmUp("vgg19_input", "dense_3_1/BiasAdd", 150, 150, 3)
+                _ageRunner = new PbRunnerWithWarmUp(_ageInputNode, _ageOutputNode, 150, 150, 3)
                 {
                     Config = new ModelConfig
                     {
                         ModelPath = ageModelPath,
                         NodeNames = new List<string>
                         {
-                            "vgg19_input",
-                            "dense_3_1/BiasAdd"
+                            _ageInputNode,
+                            _ageOutputNode
                         }
                     }
                 };
 
                 var genderModelPath = ConfigurationManager.AppSettings["gendermodelpath"];
-                _genderRunner = new PbRunnerWithWarmUp("vgg19_input", "dense_3_1/Sigmoid", 150, 150, 3)
+                _genderRunner = new PbRunnerWithWarmUp(_genderInputNode, _genderOutputNode, 150, 150, 3)
                 {
                     Config = new ModelConfig
                     {
                         ModelPath = genderModelPath,
                         NodeNames = new List<string>
                         {
-                            "vgg19_input",
-                            "dense_3_1/Sigmoid"
+                            _genderInputNode,
+                            _genderOutputNode
                         }
                     }
                 };
@@ -68,7 +77,9 @@ namespace Sample
                 _hogLocator = new FaceLocatorDlib();
                 _haarLocator = new FaceLocatorOpenCv();
 
-                _predictor = new AgeAndGenderPredictor(_genderRunner, _ageRunner)
+                _predictor = new AgeAndGenderPredictor(_genderRunner, _ageRunner,
+                    _ageInputNode, _ageOutputNode,
+                    _genderInputNode, _genderOutputNode)
                 {
                     Locator = _hogLocator,
                     Resizer = _resizer,
@@ -141,7 +152,7 @@ namespace Sample
         }
 
         /// <summary>
-        /// Chagne predictor depending on which radio button is selected.
+        /// Change predictor depending on which radio button is selected.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -158,15 +169,17 @@ namespace Sample
 
             if (RdGenderOpt.IsChecked.HasValue && RdGenderOpt.IsChecked.Value)
             {
-                _predictor = new GenderClassifier(_genderRunner);
+                _predictor = new GenderClassifier(_genderRunner, _genderInputNode, _genderOutputNode);
             }
             else if (RdAgeOpt.IsChecked.HasValue && RdAgeOpt.IsChecked.Value)
             {
-                _predictor = new AgeEstimator(_ageRunner);
+                _predictor = new AgeEstimator(_ageRunner, _ageInputNode, _ageOutputNode);
             }
             else if (RdBoth.IsChecked.HasValue && RdBoth.IsChecked.Value)
             {
-                _predictor = new AgeAndGenderPredictor(_genderRunner, _ageRunner);
+                _predictor = new AgeAndGenderPredictor(_genderRunner, _ageRunner,
+                    _ageInputNode, _ageOutputNode,
+                    _genderInputNode, _genderOutputNode);
             }
 
             _predictor.Locator = currentLocator;

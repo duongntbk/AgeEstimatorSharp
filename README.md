@@ -4,7 +4,7 @@ Ever heard of Microsoft's Age Guesser or any of its clone? Want to try it out bu
 
 This is a class library to detect face(s) from a picture and apply deep learning technology to guess the gender and age of all people detected. It also comes with a sample program which you can run without installing.
 
-The model was trained on the [AFAD](https://afad-dataset.github.io/) dataset using fine-tuning based on the VGG19 architecture (originally trained on the ImageNet database). It has archived a 95.43% accuracy for gender predicting and a Mean Absolute Error of 3.98 for age guessing.
+The model was trained on the [AFAD](https://afad-dataset.github.io/) dataset using fine-tuning based on the VGG19 architecture (originally trained on the ImageNet database). It has archived a 96.67% accuracy for gender predicting and a Mean Absolute Error of 3.88 for age guessing.
 
 # Menu
 
@@ -15,6 +15,11 @@ The model was trained on the [AFAD](https://afad-dataset.github.io/) dataset usi
     - [Installing](#installing)
 * [Manual](#manual)
     - [AgeEstimatorSharp manual](#ageestimatorsharp-manual)
+        - [If you only want to predict gender](#if-you-only-want-to-predict-gender)
+        - [If you only want to guess age](#if-you-only-want-to-guess-age)
+        - [If you want to guess both gender and age](#if-you-want-to-guess-both-gender-and-age)
+        - [Use the predictor object created above](#use-the-predictor-object-created-above)
+    - [How to use your own models](#how-to-use-your-own-models)
     - [Sample program manual](#sample-program-manual)
 * [License](#license)
 
@@ -24,7 +29,9 @@ This is a Asian faces dataset, which contains more than 160,000 facial images. I
 
 Because of that, while gender predicting can work reasonably well for people of all races and age groups; age guessing performs best for Asian people in the 15-40 age range. Especially for the 20-30 age range, I have achieved some remarkable results.
 
-**Note**: the AFAD dataset is made available for academic research purpose only. I will not public my models with this repository, but you can train those models yourself following my next article.
+**Note**: the AFAD dataset is made available for academic research purpose only. I will not public my models with this repository, but you can train those models yourself following my repository here.
+
+https://github.com/duongntbk/age_estimator_model
 
 # System requirements and installing
 
@@ -94,8 +101,8 @@ You can add your own preprocessor by implementing the *IProcessor* interface.
 Create a runner object to perform calculation on gender predicting model.
 
     var modelPath = "C:\\gender_model.pb"; // Path to pb graph of gender predicting model
-    var inputNode = "vgg19_input"; // name of input node of pb graph above
-    var outputNode = "dense_3_1/Sigmoid"; // name of output node of pb graph above
+    var inputNode = "input_1"; // name of input node of pb graph above
+    var outputNode = "dense_3_1/concat"; // name of output node of pb graph above
     genderRunner = new PbRunner
     {
         Config = new ModelConfig
@@ -111,7 +118,10 @@ Create a runner object to perform calculation on gender predicting model.
 
 Create an object of class *GenderClassifier* and pass all objects created above to it.
 
-    predictor = new GenderClassifier(genderRunner)
+    var faceHeight = 150 // height of the face area in training data
+    var faceWidth = 150 // width of the face area in training data
+    var faceDepth = 3 // number of color channels of the face area in training data
+    predictor = new GenderClassifier(genderRunner, inputNode, outputNode, faceWidth, faceHeight, faceDepth)
     {
         Locator = hogLocator, // or haarLocator
         Resizer = resizer,
@@ -123,8 +133,8 @@ Create an object of class *GenderClassifier* and pass all objects created above 
 Create a runner object to perform calculation on age guessing model.
 
     var modelPath = "C:\\age_model.pb"; // Path to pb graph of gender predicting model
-    var inputNode = "vgg19_input"; // name of input node of pb graph above
-    var outputNode = "dense_3_1/BiasAdd"; // name of output node of pb graph above
+    var inputNode = "input_1"; // name of input node of pb graph above
+    var outputNode = "dense_6/BiasAdd"; // name of output node of pb graph above
     ageRunner = new PbRunner
     {
         Config = new ModelConfig
@@ -140,7 +150,10 @@ Create a runner object to perform calculation on age guessing model.
 
 Create an object of class *AgeEstimator* and pass all objects created above to it.
 
-    predictor = new AgeEstimator(ageRunner)
+    var faceHeight = 150 // height of the face area in training data
+    var faceWidth = 150 // width of the face area in training data
+    var faceDepth = 3 // number of color channels of the face area in training data
+    predictor = new AgeEstimator(ageRunner, inputNode, outputNode, faceWidth, faceHeight, faceDepth)
     {
         Locator = hogLocator, // or haarLocator
         Resizer = resizer,
@@ -153,7 +166,12 @@ Create *genderRunner* and *ageRunner* object as above.
 
 Create an object of class *AgeAndGenderPredictor* and pass all objects created above to it.
 
-    predictor = new AgeAndGenderPredictor(genderRunner, ageRunner)
+    var faceHeight = 150 // height of the face area in training data
+    var faceWidth = 150 // width of the face area in training data
+    var faceDepth = 3 // number of color channels of the face area in training data
+    predictor = new AgeAndGenderPredictor(genderRunner, ageRunner,
+                    ageInputNode, ageOutputNode, genderInputNode, genderOutputNode,
+                    faceWidth, faceHeight, faceDepth)
     {
         Locator = hogLocator, // or haarLocator
         Resizer = resizer,
@@ -172,6 +190,58 @@ You can also perform prediction on image already loaded into memory.
     // byte[] data = get the data somehow
     var rs = predictor.Fit(data);
 
+## How to use your own models
+
+When using your own model, set *faceHeight*, *faceWidth*, *faceDepth*, *ageInputNode*, *ageOutputNode*, *genderInputNode*, *genderOutputNode* to match the value of your model.
+
+For example: the input of your model are greyscale images of size 28x28. And the node names of your model is *ageIn*, *ageOut*, *genderIn*, *genderOut*. 
+
+    var modelPath = "C:\\your_gender_model.pb";
+    var genderInputNode = "genderIn";
+    var genderOutputNode = "genderOut";
+    genderRunner = new PbRunner
+    {
+        Config = new ModelConfig
+        {
+            ModelPath = modelPath,
+            NodeNames = new List<string>
+            {
+                ageInputNode,
+                ageOutputNode
+            }
+        }
+    };
+
+    var modelPath = "C:\\your_age_model.pb";
+    var ageInputNode = "ageIn";
+    var ageOutputNode = "ageOut";
+    ageRunner = new PbRunner
+    {
+        Config = new ModelConfig
+        {
+            ModelPath = modelPath,
+            NodeNames = new List<string>
+            {
+                ageInputNode,
+                ageOutputNode
+            }
+        }
+    };
+
+    var faceHeight = 28
+    var faceWidth = 28
+    var faceDepth = 1
+    predictor = new AgeAndGenderPredictor(genderRunner, ageRunner,
+        ageInputNode, ageOutputNode, genderInputNode, genderOutputNode,
+        faceWidth, faceHeight, faceDepth)
+    {
+        Locator = hogLocator, // or haarLocator
+        Resizer = resizer,
+        Preprocessors = preprocessors // you can add or remove preprocessors as needed
+    };
+
+Now you can use *AgeAndGenderPredictor* to predict gender and guess age.
+
 ## Sample program manual
 
 Start the program. Loading might take a few seconds, but after that the program should be quite fast.
@@ -183,12 +253,20 @@ Start the program. Loading might take a few seconds, but after that the program 
 - ③: Select whether to predict gender, age or both.
 - ④: Start prediction.
 
-Some result
+Some results:
 
 <p align="center">
     <img src = "./Sample/Image/Vietnames_football_team_2019.png">
+    <br/>
+    <label>The Vietnamese football team, picture taken November 2019</label>
+    <br/><br/>
     <img src = "./Sample/Image/Tran_Dinh_Trong_2018.png">
+    <br/>
+    <label>Vietnamese footballer Trần Đình Trọng, picture taken at Asiad 2018, age around 21.5</label>
+    <br/><br/>
     <img src = "./Sample/Image/Do_Duy_Manh_2019.png">
+    <br/>
+    <label>Vietnamese footballer Đỗ Duy Mạnh, picture taken late 2019, age around 23.3</label>
 </p>
 
 # License

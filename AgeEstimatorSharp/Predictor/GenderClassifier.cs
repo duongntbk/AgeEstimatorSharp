@@ -33,11 +33,11 @@ namespace AgeEstimatorSharp.Predictor
         /// Name of output node of tensorflow model.
         /// </param>
         public GenderClassifier(IRunnable runner,
+            string inputNode,
+            string outputNode,
             int width = CommonConstants.Image.DefaultWidth,
             int height = CommonConstants.Image.DefaultHeight,
-            int depth = CommonConstants.Image.DefaultColorDepth,
-            string inputNode = CommonConstants.Predictor.GenderInputNode,
-            string outputNode = CommonConstants.Predictor.GenderOutputNode) : 
+            int depth = CommonConstants.Image.DefaultColorDepth) : 
                 base(runner, width, height, depth)
         {
             InputNode = inputNode;

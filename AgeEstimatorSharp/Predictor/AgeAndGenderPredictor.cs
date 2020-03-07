@@ -70,13 +70,13 @@ namespace AgeEstimatorSharp.Predictor
         /// Name of output node of gender predicting model.
         /// </param>
         public AgeAndGenderPredictor(IRunnable genderRunner, IRunnable ageRunner,
+            string ageInputNode,
+            string ageOutputNode,
+            string genderInputNode,
+            string genderOutputNode,
             int width = CommonConstants.Image.DefaultWidth,
             int height = CommonConstants.Image.DefaultHeight,
-            int depth = CommonConstants.Image.DefaultColorDepth,
-            string ageInputNode = CommonConstants.Predictor.AgeInputNode,
-            string ageOutputNode = CommonConstants.Predictor.AgeOutputNode,
-            string genderInputNode = CommonConstants.Predictor.GenderInputNode,
-            string genderOutputNode = CommonConstants.Predictor.GenderOutputNode) :
+            int depth = CommonConstants.Image.DefaultColorDepth) :
                 base(width, height, depth)
         {
             _ageInputNode = ageInputNode;

@@ -41,22 +41,6 @@
             /// Threshold to predict gender.
             /// </summary>
             internal const double Threshold = 0.5;
-            /// <summary>
-            /// Name of input node of sample model to estimate age.
-            /// </summary>
-            internal const string AgeInputNode = "vgg19_input";
-            /// <summary>
-            /// Name of output node of sample model to estimate age.
-            /// </summary>
-            internal const string AgeOutputNode = "dense_3_1/BiasAdd";
-            /// <summary>
-            /// Name of input node of sample model to predict gender.
-            /// </summary>
-            internal const string GenderInputNode = "vgg19_input";
-            /// <summary>
-            /// Name of output node of sample model to predict gender.
-            /// </summary>
-            internal const string GenderOutputNode = "dense_3_1/Sigmoid";
         }
     }
 }
