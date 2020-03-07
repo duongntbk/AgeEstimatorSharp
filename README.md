@@ -189,6 +189,57 @@ You can also perform prediction on image already loaded into memory.
 
     // byte[] data = get the data somehow
     var rs = predictor.Fit(data);
+    
+## How to use your own models
+
+When using your own model, set *faceHeight*, *faceWidth*, *faceDepth*, *ageInputNode*, *ageOutputNode*, *genderInputNode*, *genderOutputNode* to match the value of your model.
+
+For example: the input of your model are greyscale images of size 28x28. And the node names of your model is *ageIn*, *ageOut*, *genderIn*, *genderOut*. 
+
+    var modelPath = "C:\\your_gender_model.pb";
+    var genderInputNode = "genderIn";
+    var genderOutputNode = "genderOut";
+    genderRunner = new PbRunner
+    {
+        Config = new ModelConfig
+        {
+            ModelPath = modelPath,
+            NodeNames = new List<string>
+            {
+                ageInputNode,
+                ageOutputNode
+            }
+        }
+    };
+    
+    var modelPath = "C:\\your_age_model.pb";
+    var ageInputNode = "ageIn";
+    var ageOutputNode = "ageOut";
+    ageRunner = new PbRunner
+    {
+        Config = new ModelConfig
+        {
+            ModelPath = modelPath,
+            NodeNames = new List<string>
+            {
+                ageInputNode,
+                ageOutputNode
+            }
+        }
+    };
+    
+    var faceHeight = 28
+    var faceWidth = 28
+    var faceDepth = 1
+    predictor = new AgeAndGenderPredictor(genderRunner, ageRunner, faceWidth, faceHeight, faceDepth,
+        ageInputNode, ageOutputNode, genderInputNode, genderOutputNode)
+    {
+        Locator = hogLocator, // or haarLocator
+        Resizer = resizer,
+        Preprocessors = preprocessors // you can add or remove preprocessors as needed
+    };
+
+Now you can use *AgeAndGenderPredictor* to predict gender and guess age.
 
 ## How to use your own models
 
