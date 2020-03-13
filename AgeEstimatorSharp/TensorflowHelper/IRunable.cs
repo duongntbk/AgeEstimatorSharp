@@ -1,4 +1,5 @@
-﻿using NumSharp;
+﻿using System;
+using NumSharp;
 
 namespace AgeEstimatorSharp.TensorflowHelper
 {
@@ -28,5 +29,7 @@ namespace AgeEstimatorSharp.TensorflowHelper
         /// Output tensor
         /// </returns>
         NDArray Run(NDArray inputs, string inputName, string outputName);
+
+        ValueTuple<NDArray, NDArray> Run(NDArray inputs, string inputName, ValueTuple<string, string> outputNames);
     }
 }

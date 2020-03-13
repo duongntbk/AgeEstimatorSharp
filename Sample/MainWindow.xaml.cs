@@ -17,76 +17,53 @@ namespace Sample
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly IRunnable _ageRunner;
-        private readonly IRunnable _genderRunner;
-        private readonly IProcessor _unitPreprocessor;
-        private readonly IProcessor _meanPreprocessor;
-        private IPredictable _predictor;
-        private readonly IResizable _resizer;
+        private readonly IPredictable _predictor;
         private readonly ILocatable _hogLocator;
         private readonly ILocatable _haarLocator;
         private readonly IAnnotation _annotator;
-        private readonly string _ageInputNode;
-        private readonly string _ageOutputNode;
-        private readonly string _genderInputNode;
-        private readonly string _genderOutputNode;
 
         public MainWindow()
         {
             try
             {
-                _ageInputNode = ConfigurationManager.AppSettings["ageinputnode"];
-                _ageOutputNode = ConfigurationManager.AppSettings["ageoutputnode"];
-                _genderInputNode = ConfigurationManager.AppSettings["genderinputnode"];
-                _genderOutputNode = ConfigurationManager.AppSettings["genderoutputnode"];
+                var inputNode = ConfigurationManager.AppSettings["inputnode"];
+                var ageOutputNode = ConfigurationManager.AppSettings["ageoutputnode"];
+                var genderOutputNode = ConfigurationManager.AppSettings["genderoutputnode"];
 
-                var ageModelPath = ConfigurationManager.AppSettings["agemodelpath"];
-                _ageRunner = new PbRunnerWithWarmUp(_ageInputNode, _ageOutputNode, 150, 150, 3)
+                var modelPath = ConfigurationManager.AppSettings["modelpath"];
+                var outputNodes = new ValueTuple<string, string>(ageOutputNode, genderOutputNode);
+                IRunnable runner = new PbRunnerWithWarmUp(inputNode, outputNodes, 150, 150, 3)
                 {
                     Config = new ModelConfig
                     {
-                        ModelPath = ageModelPath,
+                        ModelPath = modelPath,
                         NodeNames = new List<string>
                         {
-                            _ageInputNode,
-                            _ageOutputNode
-                        }
-                    }
-                };
-
-                var genderModelPath = ConfigurationManager.AppSettings["gendermodelpath"];
-                _genderRunner = new PbRunnerWithWarmUp(_genderInputNode, _genderOutputNode, 150, 150, 3)
-                {
-                    Config = new ModelConfig
-                    {
-                        ModelPath = genderModelPath,
-                        NodeNames = new List<string>
-                        {
-                            _genderInputNode,
-                            _genderOutputNode
+                            inputNode,
+                            ageOutputNode,
+                            genderOutputNode,
                         }
                     }
                 };
 
                 var meanJsonPath = ConfigurationManager.AppSettings["meanjsonpath"];
-                _meanPreprocessor = new MeanPreprocessor(meanJsonPath);
+                IProcessor meanPreprocessor = new MeanPreprocessor(meanJsonPath);
 
-                _unitPreprocessor = new UnitPreprocessor();
+                IProcessor dividePreprocessor = new DividePreprocessor(127.5);
 
-                _resizer = new FaceResizer();
+                IResizable resizer = new FaceResizer();
                 _hogLocator = new FaceLocatorDlib();
                 _haarLocator = new FaceLocatorOpenCv();
 
-                _predictor = new AgeAndGenderPredictor(_genderRunner, _ageRunner,
-                    _ageInputNode, _ageOutputNode,
-                    _genderInputNode, _genderOutputNode)
+                _predictor = new AgeAndGenderPredictor(runner, inputNode,
+                    ageOutputNode, genderOutputNode)
                 {
                     Locator = _hogLocator,
-                    Resizer = _resizer,
+                    Resizer = resizer,
                     Preprocessors = new List<IProcessor>
                     {
-                        _meanPreprocessor,
-                        _unitPreprocessor
+                        meanPreprocessor,
+                        dividePreprocessor
                     }
                 };
 
@@ -163,28 +140,18 @@ namespace Sample
                 return;
             }
 
-            var currentPreprocessor = _predictor.Preprocessors;
-            var currentLocator = _predictor.Locator;
-            var currentResizer = _predictor.Resizer;
-
             if (RdGenderOpt.IsChecked.HasValue && RdGenderOpt.IsChecked.Value)
             {
-                _predictor = new GenderClassifier(_genderRunner, _genderInputNode, _genderOutputNode);
+                _annotator.Option = AnnotationOption.Gender;
             }
             else if (RdAgeOpt.IsChecked.HasValue && RdAgeOpt.IsChecked.Value)
             {
-                _predictor = new AgeEstimator(_ageRunner, _ageInputNode, _ageOutputNode);
+                _annotator.Option = AnnotationOption.Age;
             }
             else if (RdBoth.IsChecked.HasValue && RdBoth.IsChecked.Value)
             {
-                _predictor = new AgeAndGenderPredictor(_genderRunner, _ageRunner,
-                    _ageInputNode, _ageOutputNode,
-                    _genderInputNode, _genderOutputNode);
+                _annotator.Option = AnnotationOption.Both;
             }
-
-            _predictor.Locator = currentLocator;
-            _predictor.Resizer = currentResizer;
-            _predictor.Preprocessors = currentPreprocessor;
         }
 
         /// <summary>

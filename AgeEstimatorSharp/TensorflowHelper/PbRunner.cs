@@ -74,6 +74,19 @@ namespace AgeEstimatorSharp.TensorflowHelper
             return np.squeeze(results);
         }
 
+        /// <inheritdoc />
+        public ValueTuple<NDArray, NDArray> Run(NDArray inputs, string inputName, ValueTuple<string, string> outputNames)
+        {
+            var fetches = new ValueTuple<ITensorOrOperation, ITensorOrOperation>
+            {
+                Item1 = _operationDict[outputNames.Item1].outputs[0],
+                Item2 = _operationDict[outputNames.Item2].outputs[0]
+            };
+
+            var inputOperation = _operationDict[inputName];
+            return _session.run(fetches, new FeedItem(inputOperation.outputs[0], inputs));
+        }
+
         /// <summary>
         /// Load model settings from pb file.
         /// </summary>

@@ -1,4 +1,5 @@
-﻿using AgeEstimatorSharp.TensorflowHelper;
+﻿using System;
+using AgeEstimatorSharp.TensorflowHelper;
 using NumSharp;
 
 namespace Sample
@@ -16,9 +17,9 @@ namespace Sample
         /// </summary>
         private readonly string _inputNode;
         /// <summary>
-        /// Name of output node.
+        /// Name of output nodes.
         /// </summary>
-        private readonly string _outputNode;
+        private readonly ValueTuple<string, string> _outputNodes;
         /// <summary>
         /// Width of face image.
         /// </summary>
@@ -40,7 +41,7 @@ namespace Sample
         /// <param name="inputNode">
         /// Name of input node.
         /// </param>
-        /// <param name="outputNode">
+        /// <param name="outputNodes">
         /// Name of output node.
         /// </param>
         /// <param name="width">
@@ -52,11 +53,11 @@ namespace Sample
         /// <param name="depth">
         /// Depth of face image.
         /// </param>
-        public PbRunnerWithWarmUp(string inputNode, string outputNode,
+        public PbRunnerWithWarmUp(string inputNode, ValueTuple<string, string> outputNodes,
             int width, int height, int depth)
         {
             _inputNode = inputNode;
-            _outputNode = outputNode;
+            _outputNodes = outputNodes;
             _width = width;
             _height = height;
             _depth = depth;
@@ -77,7 +78,7 @@ namespace Sample
         private void WarmUp()
         {
             var dummyInputs = np.ones(1, _width, _height, _depth);
-            Run(dummyInputs, _inputNode, _outputNode);
+            Run(dummyInputs, _inputNode, _outputNodes);
         }
     }
 }

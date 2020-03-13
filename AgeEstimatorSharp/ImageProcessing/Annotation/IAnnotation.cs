@@ -11,6 +11,11 @@ namespace AgeEstimatorSharp.ImageProcessing.Annotation
     public interface IAnnotation
     {
         /// <summary>
+        /// Choose to predict only age, only gender or both.
+        /// </summary>
+        AnnotationOption Option { get; set; }
+
+        /// <summary>
         /// Annotate input image with predicted results.
         /// </summary>
         /// <param name="path">

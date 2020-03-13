@@ -12,10 +12,6 @@ namespace AgeEstimatorSharp.Predictor
     public abstract class BaseSinglePredictor : BasePredictor
     {
         /// <summary>
-        /// Object to perform tensor calculation using tensorflow model.
-        /// </summary>
-        protected IRunnable Runner;
-        /// <summary>
         /// Name of input node of tensorflow graph.
         /// </summary>
         protected string InputNode;
@@ -42,49 +38,16 @@ namespace AgeEstimatorSharp.Predictor
             int width = CommonConstants.Image.DefaultWidth,
             int height = CommonConstants.Image.DefaultHeight,
             int depth = CommonConstants.Image.DefaultColorDepth) :
-                base(width, height, depth)
+                base(runner, width, height, depth)
         {
-            Runner = runner;
         }
 
         /// <inheritdoc />
-        public override List<Result> Fit(string imagePath)
+        protected override List<Result> Fit(List<Location> faceLocs, NDArray inputs)
         {
-            // Detect all faces in image
-            var faceLocs = Locator.GetFaceLocations(imagePath);
+            // Pass input tensor to tensorflow model and retrieve result
+            var rawOutputs = Runner.Run(inputs, InputNode, OutputNode);
 
-            // Return empty result list if no face was detected
-            if (faceLocs.Count == 0)
-            {
-                return new List<Result>();
-            }
-
-            // Resize face to match input of tensorflow model
-            var faces = Resizer.Resize(imagePath, faceLocs, Width, Height);
-
-            // Retrieve predicted result as tensor
-            var rawOutputs = Fit(faces, Runner, InputNode, OutputNode);
-            // Convert result tensor to more readable format
-            return ConvertToResult(faceLocs, rawOutputs);
-        }
-
-        /// <inheritdoc />
-        public override List<Result> Fit(byte[] data)
-        {
-            // Detect all faces from byte array
-            var faceLocs = Locator.GetFaceLocations(data);
-
-            // Return empty result list if no face was detected
-            if (faceLocs.Count == 0)
-            {
-                return new List<Result>();
-            }
-
-            // Resize face to match input of tensorflow model
-            var faces = Resizer.Resize(data, faceLocs, Width, Height);
-
-            // Retrieve predicted result as tensor
-            var rawOutputs = Fit(faces, Runner, InputNode, OutputNode);
             // Convert result tensor to more readable format
             return ConvertToResult(faceLocs, rawOutputs);
         }

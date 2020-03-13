@@ -4,7 +4,7 @@ Ever heard of Microsoft's Age Guesser or any of its clone? Want to try it out bu
 
 This is a class library to detect face(s) from a picture and apply deep learning technology to guess the gender and age of all people detected. It also comes with a sample program which you can run without installing.
 
-The model was trained on the [AFAD](https://afad-dataset.github.io/) dataset using fine-tuning based on the VGG19 architecture (originally trained on the ImageNet database). It has archived a 96.67% accuracy for gender predicting and a Mean Absolute Error of 3.88 for age guessing.
+We use a model called AgeGenderNet, which was trained on the [AFAD](https://afad-dataset.github.io/) dataset using fine-tuning based on the VGG19 architecture (originally trained on the ImageNet database). It has archived a 97.01% accuracy for gender predicting and a Mean Absolute Error of 3.67 for age guessing.
 
 # Menu
 
@@ -13,6 +13,7 @@ The model was trained on the [AFAD](https://afad-dataset.github.io/) dataset usi
 * [System requirements and installing](#system-requirements-and-installing)
     - [Software version](#software-version)
     - [Installing](#installing)
+    - [Pre-trained model](#pre-trained-model)
 * [Manual](#manual)
     - [AgeEstimatorSharp manual](#ageestimatorsharp-manual)
         - [If you only want to predict gender](#if-you-only-want-to-predict-gender)
@@ -29,15 +30,15 @@ This is a Asian faces dataset, which contains more than 160,000 facial images. I
 
 Because of that, while gender predicting can work reasonably well for people of all races and age groups; age guessing performs best for Asian people in the 15-40 age range. Especially for the 20-30 age range, I have achieved some remarkable results.
 
-**Note**: the AFAD dataset is made available for academic research purpose only. I will not public my models with this repository, but you can train those models yourself following my repository here.
+See my repository below for the detail's information about AgeGenderNet.
 
-https://github.com/duongntbk/age_estimator_model
+https://github.com/duongntbk/AgeGenderNet
 
 # System requirements and installing
 
 ## Software version
 
-- OS: Windows
+- OS: Windows 64 bit
 - .NET Framework: 4.6.1 and above
 - Tensorflow.NET v0.14.0
 - SciSharp v1.15.0
@@ -49,14 +50,22 @@ https://github.com/duongntbk/age_estimator_model
 
 Nuget packages is not ready yet. To use this library, clone this repository, add AgeEstimatorSharp project to your solution and add a new reference to it.
 
-On the otherhand, the sample program is ready to be used as is (if you have .NET Framework 4.6.1 or above). 
+On the other hand, the sample program is ready to be used as is (if you have .NET Framework 4.6.1 or above). 
 - Download and extract the executable file. Beware that due to all dependent libraries, the sample program takes up nearly 90MB compressed.
-- Open *Sample.exe.config*, modify row 333~335 as below:
+- Open *Sample.exe.config*, modify row 333~337 as below:
     - *meanjsonpath*: channel-wise mean value of training data, use to normalize input data.
-    - *agemodelpath*: absolute path to age guesser model. This model should be in pb format.
-    - *gendermodelpath*: absolute path to gender predicting model. This model should be in pb format.
+    - *modelpath*: absolute path to AgeGenderNet model. This model should be in pb format.
+    - *inputnode*: name of input node of pb graph.
+    - *ageoutputnode*: name of output node of pb graph, age guessing branch.
+    - *genderoutputnode*: name of output node of pb graph, gender prediction branch.
 
 All dll can be download from *release* tab.
+
+## Pre-trained model
+
+You can download a pre-trained model of AgeGenderNet from the link below. Please note that while AgeEstimatorSharp is GNUv3 licensed, the model itself was trained on AFAD dataset, which is made available for academic research purpose only. Because of that, the pre-trained model can also only be used for academic research purpose as well.
+
+https://drive.google.com/open?id=14F8kXnru3o7UHYaIZSXiDRVFCbxtHrXR
 
 # Manual
 
@@ -87,23 +96,23 @@ Create a list of preprocessors to perform normalization on input data.
 
     meanJsonPath = "C:\\mean.json";
     meanPreprocessor = new MeanPreprocessor(meanJsonPath); // mean normalization
-    unitPreprocessor = new UnitPreprocessor(); // normalize input data into [0, 1] range
+    dividePreprocessor = new DividePreprocessor(127.5); // normalize input data into [-1, 1] range
     preprocessors = new List<IProcessor>
     {
         meanPreprocessor,
-        unitPreprocessor
+        dividePreprocessor
     };
 
 You can add your own preprocessor by implementing the *IProcessor* interface.
 
 ### If you only want to predict gender
 
-Create a runner object to perform calculation on gender predicting model.
+Create a runner object to perform gender predicting.
 
-    var modelPath = "C:\\gender_model.pb"; // Path to pb graph of gender predicting model
-    var inputNode = "input_1"; // name of input node of pb graph above
-    var outputNode = "dense_3_1/concat"; // name of output node of pb graph above
-    genderRunner = new PbRunner
+    var modelPath = "C:\\agegendernet.pb"; // Path to pb graph of gender predicting model
+    var inputNode = "root_input"; // name of input node of pb graph above
+    var outputNode = "gender_output/Sigmoid"; // name of output node of pb graph above
+    runner = new PbRunner
     {
         Config = new ModelConfig
         {
@@ -121,7 +130,7 @@ Create an object of class *GenderClassifier* and pass all objects created above 
     var faceHeight = 150 // height of the face area in training data
     var faceWidth = 150 // width of the face area in training data
     var faceDepth = 3 // number of color channels of the face area in training data
-    predictor = new GenderClassifier(genderRunner, inputNode, outputNode, faceWidth, faceHeight, faceDepth)
+    predictor = new GenderClassifier(runner, inputNode, outputNode, faceWidth, faceHeight, faceDepth)
     {
         Locator = hogLocator, // or haarLocator
         Resizer = resizer,
@@ -130,12 +139,12 @@ Create an object of class *GenderClassifier* and pass all objects created above 
 
 ### If you only want to guess age
 
-Create a runner object to perform calculation on age guessing model.
+Create a runner object to perform age guessing.
 
-    var modelPath = "C:\\age_model.pb"; // Path to pb graph of gender predicting model
-    var inputNode = "input_1"; // name of input node of pb graph above
-    var outputNode = "dense_6/BiasAdd"; // name of output node of pb graph above
-    ageRunner = new PbRunner
+    var modelPath = "C:\\agegendernet.pb"; // Path to pb graph of gender predicting model
+    var inputNode = "root_input"; // name of input node of pb graph above
+    var outputNode = "age_output/BiasAdd"; // name of output node of pb graph above, age guessing branch
+    runner = new PbRunner
     {
         Config = new ModelConfig
         {
@@ -153,7 +162,7 @@ Create an object of class *AgeEstimator* and pass all objects created above to i
     var faceHeight = 150 // height of the face area in training data
     var faceWidth = 150 // width of the face area in training data
     var faceDepth = 3 // number of color channels of the face area in training data
-    predictor = new AgeEstimator(ageRunner, inputNode, outputNode, faceWidth, faceHeight, faceDepth)
+    predictor = new AgeEstimator(runner, inputNode, outputNode, faceWidth, faceHeight, faceDepth)
     {
         Locator = hogLocator, // or haarLocator
         Resizer = resizer,
@@ -162,15 +171,33 @@ Create an object of class *AgeEstimator* and pass all objects created above to i
 
 ### If you want to guess both gender and age
 
-Create *genderRunner* and *ageRunner* object as above.
+Create a runner object to perform both age guessing and gender predicting.
+
+    var modelPath = "C:\\agegendernet.pb"; // Path to pb graph of gender predicting model
+    var inputNode = "root_input"; // name of input node of pb graph above
+    var ageOutputNode = "age_output/BiasAdd"; // name of output node of pb graph above, age guessing branch
+    var genderOutputNode = "gender_output/Sigmoid"; // name of output node of pb graph above, gender predicting branch
+    runner = new PbRunner
+    {
+        Config = new ModelConfig
+        {
+            ModelPath = modelPath,
+            NodeNames = new List<string>
+            {
+                inputNode,
+                ageOutputNode,
+                genderOutputNode
+            }
+        }
+    };
 
 Create an object of class *AgeAndGenderPredictor* and pass all objects created above to it.
 
     var faceHeight = 150 // height of the face area in training data
     var faceWidth = 150 // width of the face area in training data
     var faceDepth = 3 // number of color channels of the face area in training data
-    predictor = new AgeAndGenderPredictor(genderRunner, ageRunner,
-                    ageInputNode, ageOutputNode, genderInputNode, genderOutputNode,
+    predictor = new AgeAndGenderPredictor(runner,
+                    inputNode, ageOutputNode, genderOutputNode,
                     faceWidth, faceHeight, faceDepth)
     {
         Locator = hogLocator, // or haarLocator
@@ -192,38 +219,24 @@ You can also perform prediction on image already loaded into memory.
     
 ## How to use your own models
 
-When using your own model, set *faceHeight*, *faceWidth*, *faceDepth*, *ageInputNode*, *ageOutputNode*, *genderInputNode*, *genderOutputNode* to match the value of your model.
+When using your own model, set *faceHeight*, *faceWidth*, *faceDepth*, *inputNode*, *ageOutputNode*, *genderOutputNode* to match the value of your model.
 
-For example: the input of your model are greyscale images of size 28x28. And the node names of your model is *ageIn*, *ageOut*, *genderIn*, *genderOut*. 
+For example: the input of your model are greyscale images of size 28x28. And the node names of your model is *input*, *ageOut*, *genderOut*. 
 
     var modelPath = "C:\\your_gender_model.pb";
-    var genderInputNode = "genderIn";
+    var inputNode = "input";
     var genderOutputNode = "genderOut";
-    genderRunner = new PbRunner
-    {
-        Config = new ModelConfig
-        {
-            ModelPath = modelPath,
-            NodeNames = new List<string>
-            {
-                ageInputNode,
-                ageOutputNode
-            }
-        }
-    };
-    
-    var modelPath = "C:\\your_age_model.pb";
-    var ageInputNode = "ageIn";
     var ageOutputNode = "ageOut";
-    ageRunner = new PbRunner
+    runner = new PbRunner
     {
         Config = new ModelConfig
         {
             ModelPath = modelPath,
             NodeNames = new List<string>
             {
-                ageInputNode,
-                ageOutputNode
+                input,
+                ageOutputNode,
+                genderOutputNode
             }
         }
     };
@@ -231,59 +244,8 @@ For example: the input of your model are greyscale images of size 28x28. And the
     var faceHeight = 28
     var faceWidth = 28
     var faceDepth = 1
-    predictor = new AgeAndGenderPredictor(genderRunner, ageRunner, faceWidth, faceHeight, faceDepth,
-        ageInputNode, ageOutputNode, genderInputNode, genderOutputNode)
-    {
-        Locator = hogLocator, // or haarLocator
-        Resizer = resizer,
-        Preprocessors = preprocessors // you can add or remove preprocessors as needed
-    };
-
-Now you can use *AgeAndGenderPredictor* to predict gender and guess age.
-
-## How to use your own models
-
-When using your own model, set *faceHeight*, *faceWidth*, *faceDepth*, *ageInputNode*, *ageOutputNode*, *genderInputNode*, *genderOutputNode* to match the value of your model.
-
-For example: the input of your model are greyscale images of size 28x28. And the node names of your model is *ageIn*, *ageOut*, *genderIn*, *genderOut*. 
-
-    var modelPath = "C:\\your_gender_model.pb";
-    var genderInputNode = "genderIn";
-    var genderOutputNode = "genderOut";
-    genderRunner = new PbRunner
-    {
-        Config = new ModelConfig
-        {
-            ModelPath = modelPath,
-            NodeNames = new List<string>
-            {
-                ageInputNode,
-                ageOutputNode
-            }
-        }
-    };
-
-    var modelPath = "C:\\your_age_model.pb";
-    var ageInputNode = "ageIn";
-    var ageOutputNode = "ageOut";
-    ageRunner = new PbRunner
-    {
-        Config = new ModelConfig
-        {
-            ModelPath = modelPath,
-            NodeNames = new List<string>
-            {
-                ageInputNode,
-                ageOutputNode
-            }
-        }
-    };
-
-    var faceHeight = 28
-    var faceWidth = 28
-    var faceDepth = 1
-    predictor = new AgeAndGenderPredictor(genderRunner, ageRunner,
-        ageInputNode, ageOutputNode, genderInputNode, genderOutputNode,
+    predictor = new AgeAndGenderPredictor(runner,
+        inputNode, ageOutputNode, genderOutputNode,
         faceWidth, faceHeight, faceDepth)
     {
         Locator = hogLocator, // or haarLocator
@@ -300,7 +262,7 @@ Start the program. Loading might take a few seconds, but after that the program 
 <img src = "./Sample/Image/gui.JPG">
 
 - ①: select and load target image from disk.
-- ②: Choose face detection method. You can choose between HOG Feature using DlibDotNet libary or Haar Cascade using OpenCvSharp3 library. Haar Cascade is more sensitive but is also more prone to false positive.
+- ②: Choose face detection method. You can choose between HOG Feature using DlibDotNet library or Haar Cascade using OpenCvSharp3 library. Haar Cascade is more sensitive but is also more prone to false positive.
 - ③: Select whether to predict gender, age or both.
 - ④: Start prediction.
 

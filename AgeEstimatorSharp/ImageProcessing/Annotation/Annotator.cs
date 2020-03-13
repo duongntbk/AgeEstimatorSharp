@@ -11,6 +11,9 @@ namespace AgeEstimatorSharp.ImageProcessing.Annotation
     public class Annotator : IAnnotation
     {
         /// <inheritdoc />
+        public AnnotationOption Option { get; set; } = AnnotationOption.Both;
+
+        /// <inheritdoc />
         public Mat Annotate(string path, List<Result> results)
         {
             var image = Cv2.ImRead(path);
@@ -42,12 +45,11 @@ namespace AgeEstimatorSharp.ImageProcessing.Annotation
             Cv2.Rectangle(image, topLeft, bottomRight, Scalar.Red, 2);
 
             string msg;
-            if (result.Gender != Gender.NotPredict && 
-                result.Age.CompareTo(CommonConstants.Predictor.NotPredictAge) != 0)
+            if (Option == AnnotationOption.Both)
             {
                 msg = $"{result.Gender} - {result.Age:n2}";
             }
-            else if (result.Gender != Gender.NotPredict)
+            else if (Option == AnnotationOption.Gender)
             {
                 msg = $"{result.Gender}";
             }
