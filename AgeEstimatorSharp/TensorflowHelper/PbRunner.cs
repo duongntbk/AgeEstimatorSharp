@@ -20,7 +20,7 @@ namespace AgeEstimatorSharp.TensorflowHelper
         /// <summary>
         /// Graph of tensorflow model, loaded from pb file.
         /// </summary>
-        private readonly Graph _graph = new Graph();
+        private Graph _graph;
         /// <summary>
         /// Current tensorflow session.
         /// </summary>
@@ -87,6 +87,14 @@ namespace AgeEstimatorSharp.TensorflowHelper
             return _session.run(fetches, new FeedItem(inputOperation.outputs[0], inputs));
         }
 
+
+        /// <inheritdoc />
+        public void GetDefault()
+        {
+            _session = _session.as_default();
+            _graph = _graph.as_default();
+        }
+
         /// <summary>
         /// Load model settings from pb file.
         /// </summary>
@@ -95,6 +103,9 @@ namespace AgeEstimatorSharp.TensorflowHelper
         {
             // Update current model path
             ModelPath = config.ModelPath;
+
+            // Re-create Graph object
+            _graph = new Graph();
 
             // Import graph from pb file
             _graph.Import(ModelPath);

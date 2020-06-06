@@ -51,5 +51,12 @@ namespace AgeEstimatorSharp.Predictor
         /// each one is the position and predicted result of a face.
         /// </returns>
         List<Result> Fit(byte[] data);
+
+        /// <summary>
+        /// Call as_default on session and graph
+        /// so that session initialization and calculation can run on different threads.
+        /// In most cases this method can defer to the method with the same name in IRunnable.
+        /// </summary>
+        void GetDefault();
     }
 }

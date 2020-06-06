@@ -104,6 +104,9 @@ namespace AgeEstimatorSharp.Predictor
             return Fit(faceLocs, faces);
         }
 
+        /// <inheritdoc />
+        public void GetDefault() => Runner.GetDefault();
+
         /// <summary>
         /// Predict gender/age for all faces which were detected.
         /// </summary>

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using AgeEstimatorSharp.ImageProcessing;
 using AgeEstimatorSharp.ImageProcessing.Annotation;
 using AgeEstimatorSharp.ImageProcessing.Locator;
@@ -21,6 +23,9 @@ namespace Sample
         private readonly ILocatable _hogLocator;
         private readonly ILocatable _haarLocator;
         private readonly IAnnotation _annotator;
+        private readonly IRunnable _runner;
+
+        public MainWindowContext Context { get; set; } = new MainWindowContext();
 
         public MainWindow()
         {
@@ -29,22 +34,9 @@ namespace Sample
                 var inputNode = ConfigurationManager.AppSettings["inputnode"];
                 var ageOutputNode = ConfigurationManager.AppSettings["ageoutputnode"];
                 var genderOutputNode = ConfigurationManager.AppSettings["genderoutputnode"];
-
-                var modelPath = ConfigurationManager.AppSettings["modelpath"];
+                
                 var outputNodes = new ValueTuple<string, string>(ageOutputNode, genderOutputNode);
-                IRunnable runner = new PbRunnerWithWarmUp(inputNode, outputNodes, 150, 150, 3)
-                {
-                    Config = new ModelConfig
-                    {
-                        ModelPath = modelPath,
-                        NodeNames = new List<string>
-                        {
-                            inputNode,
-                            ageOutputNode,
-                            genderOutputNode,
-                        }
-                    }
-                };
+                _runner = new PbRunnerWithWarmUp(inputNode, outputNodes, 150, 150, 3);
 
                 var meanJsonPath = ConfigurationManager.AppSettings["meanjsonpath"];
                 IProcessor meanPreprocessor = new MeanPreprocessor(meanJsonPath);
@@ -55,7 +47,7 @@ namespace Sample
                 _hogLocator = new FaceLocatorDlib();
                 _haarLocator = new FaceLocatorOpenCv();
 
-                _predictor = new AgeAndGenderPredictor(runner, inputNode,
+                _predictor = new AgeAndGenderPredictor(_runner, inputNode,
                     ageOutputNode, genderOutputNode)
                 {
                     Locator = _hogLocator,
@@ -84,22 +76,56 @@ namespace Sample
             }
 
             InitializeComponent();
+            DataContext = Context;
         }
 
-        private void BtnPredict_Click(object sender, RoutedEventArgs e)
+        private void PredictCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            var rs = _predictor.Fit(TbtImgSrc.Text);
-            if (rs.Count == 0)
-            {
-                MessageBox.Show("not found");
-                return;
-            }
-
-            var rsImg = _annotator.Annotate(TbtImgSrc.Text, rs);
-            ImageUtils.DisplayImage(rsImg, "Result");
+            e.CanExecute = !Context.IsProcessing &&
+                !string.IsNullOrEmpty(Context.PicturePath);
         }
 
-        private void BtnLoadImage_Click(object sender, RoutedEventArgs e)
+        private async void PredictCommand_Execute(object sender, ExecutedRoutedEventArgs e)
+        {
+            try
+            {
+                DisplayStandByGraphic("Predicting...");
+
+                _predictor.Locator = Context.FaceDetection == FaceDetectionOption.Hog ? _hogLocator : _haarLocator;                            
+                var rs = new List<Result>();
+                await Task.Run(() =>
+                {
+                    // Tensorflow session was created in a different thread.
+                    _predictor.GetDefault();
+                    rs = _predictor.Fit(Context.PicturePath);
+                });
+
+                if (rs.Count == 0)
+                {
+                    MessageBox.Show("not found");
+                    return;
+                }
+
+                _annotator.Option = Context.Annotation;
+                var rsImg = _annotator.Annotate(Context.PicturePath, rs);
+                ImageUtils.DisplayImage(rsImg, "Result");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButton.OK);
+            }
+            finally
+            {
+                DisplayDefaultGraphic();
+            }
+        }
+
+        private void LoadImageCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = !Context.IsProcessing;
+        }
+
+        private void LoadImageCommand_Execute(object sender, ExecutedRoutedEventArgs e)
         {
             var imagePath = SelectFile();
             if (string.IsNullOrEmpty(imagePath))
@@ -107,7 +133,7 @@ namespace Sample
                 return;
             }
 
-            TbtImgSrc.Text = imagePath;
+            Context.PicturePath = imagePath;
         }
 
         private string SelectFile()
@@ -129,51 +155,51 @@ namespace Sample
         }
 
         /// <summary>
-        /// Change predictor depending on which radio button is selected.
+        /// Display animation gif when background task is running.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void PredictionOptionChecked(object sender, RoutedEventArgs e)
+        /// <param name="message"></param>
+        private void DisplayStandByGraphic(string message)
         {
-            if (!IsInitialized)
-            {
-                return;
-            }
-
-            if (RdGenderOpt.IsChecked.HasValue && RdGenderOpt.IsChecked.Value)
-            {
-                _annotator.Option = AnnotationOption.Gender;
-            }
-            else if (RdAgeOpt.IsChecked.HasValue && RdAgeOpt.IsChecked.Value)
-            {
-                _annotator.Option = AnnotationOption.Age;
-            }
-            else if (RdBoth.IsChecked.HasValue && RdBoth.IsChecked.Value)
-            {
-                _annotator.Option = AnnotationOption.Both;
-            }
+            Context.IsProcessing = true;
+            Context.FormTitle = message;
+            GifCtrl.StartAnimate();
         }
 
         /// <summary>
-        /// Change face detector depending on which radio button was selected.
+        /// Restore original layout of program.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void FaceDetectionOptionChecked(object sender, RoutedEventArgs e)
+        private void DisplayDefaultGraphic()
         {
-            if (!IsInitialized)
-            {
-                return;
-            }
+            GifCtrl.StopAnimate();
+            Context.FormTitle = "Sample";
+            Context.IsProcessing = false;
+        }
 
-            if (RdHogMethod.IsChecked.HasValue && RdHogMethod.IsChecked.Value)
+        private async void MainWindow_OnLoaded(object sender, EventArgs e)
+        {
+            var modelPath = ConfigurationManager.AppSettings["modelpath"];
+            var inputNode = ConfigurationManager.AppSettings["inputnode"];
+            var ageOutputNode = ConfigurationManager.AppSettings["ageoutputnode"];
+            var genderOutputNode = ConfigurationManager.AppSettings["genderoutputnode"];
+
+            DisplayStandByGraphic("Loading model...");
+
+            await Task.Run(() =>
             {
-                _predictor.Locator = _hogLocator;
-            }
-            else if (RdHaarMethod.IsChecked.HasValue && RdHaarMethod.IsChecked.Value)
-            {
-                _predictor.Locator = _haarLocator;
-            }
+                _runner.Config = new ModelConfig
+                {
+                    ModelPath = modelPath,
+                    NodeNames = new List<string>
+                    {
+                        inputNode,
+                        ageOutputNode,
+                        genderOutputNode,
+                    }
+                };
+            });
+
+            DisplayDefaultGraphic();
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 }

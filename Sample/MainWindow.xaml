@@ -4,17 +4,200 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Sample"
+        xmlns:annotation="clr-namespace:AgeEstimatorSharp.ImageProcessing.Annotation;assembly=AgeEstimatorSharp"
         mc:Ignorable="d"
-        Title="Age Estimator Sample" Height="214.676" Width="580">
-    <Grid x:Name="FrmMain" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
-        <Button x:Name="BtnPredict" Content="Predict" HorizontalAlignment="Left" Margin="26,137,0,0" Width="85" Height="20" VerticalAlignment="Top" Click="BtnPredict_Click"/>
-        <Button x:Name="BtnLoad" Content="Load Image" HorizontalAlignment="Left" Margin="26,40,0,0" VerticalAlignment="Top" Width="85" Click="BtnLoadImage_Click"/>
-        <TextBox x:Name="TbtImgSrc" HorizontalAlignment="Left" Height="23" Margin="121,40,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="405"/>
-        <RadioButton x:Name="RdGenderOpt" GroupName="PredictOption" Content="Gender" HorizontalAlignment="Left" Margin="121,140,0,0" VerticalAlignment="Top" Checked="PredictionOptionChecked"/>
-        <RadioButton x:Name="RdAgeOpt" GroupName="PredictOption" Content="Age" HorizontalAlignment="Left" Margin="196,140,0,0" VerticalAlignment="Top" Checked="PredictionOptionChecked"/>
-        <RadioButton x:Name="RdBoth" GroupName="PredictOption" Content="Both" HorizontalAlignment="Left" Margin="258,140,0,0" VerticalAlignment="Top" IsChecked="True" Checked="PredictionOptionChecked"/>
-        <Label x:Name="LblFaceDetectionMethod" Content="Face detection method" HorizontalAlignment="Left" Margin="26,76,0,0" VerticalAlignment="Top"/>
-        <RadioButton x:Name="RdHogMethod" GroupName="FaceDetectionOption" Content="HOG Feature" HorizontalAlignment="Left" Margin="196,83,0,0" VerticalAlignment="Top" IsChecked="True" Checked="FaceDetectionOptionChecked"/>
-        <RadioButton x:Name="RdHaarMethod" GroupName="FaceDetectionOption" Content="Haar Cascade" HorizontalAlignment="Left" Margin="196,104,0,0" VerticalAlignment="Top" Checked="FaceDetectionOptionChecked"/>
+        Title="{Binding FormTitle}" Height="250" Width="600" Loaded="MainWindow_OnLoaded">
+    <Window.Background>
+        <DynamicResource ResourceKey="{x:Static SystemColors.ControlBrushKey}" />
+    </Window.Background>
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter>
+                <Setter.Property>Width</Setter.Property>
+                <Setter.Value>75</Setter.Value>
+            </Setter>
+            <Setter>
+                <Setter.Property>Height</Setter.Property>
+                <Setter.Value>20</Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter>
+                <Setter.Property>Height</Setter.Property>
+                <Setter.Value>25</Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Label">
+            <Setter>
+                <Setter.Property>Height</Setter.Property>
+                <Setter.Value>25</Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="RadioButton">
+            <Setter>
+                <Setter.Property>Height</Setter.Property>
+                <Setter.Value>25</Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Window.CommandBindings>
+        <CommandBinding Command="local:Commands.LoadImage" CanExecute="LoadImageCommand_CanExecute" Executed="LoadImageCommand_Execute" />
+        <CommandBinding Command="local:Commands.Predict" CanExecute="PredictCommand_CanExecute" Executed="PredictCommand_Execute" />
+    </Window.CommandBindings>
+    <Grid>
+        <Grid>
+            <Grid.Margin>20</Grid.Margin>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="2*"/>
+            </Grid.RowDefinitions>
+            <Button>
+                <Button.HorizontalAlignment>Left</Button.HorizontalAlignment>
+                <Button.Content>Load Image</Button.Content>
+                <Button.Command>local:Commands.LoadImage</Button.Command>
+            </Button>
+            <TextBox>
+                <Grid.Column>1</Grid.Column>
+                <Grid.Row>0</Grid.Row>
+                <Grid.ColumnSpan>4</Grid.ColumnSpan>
+                <TextBox.Text>
+                    <Binding Path="PicturePath" />
+                </TextBox.Text>
+            </TextBox>
+            <Label>
+                <Label.HorizontalAlignment>Left</Label.HorizontalAlignment>
+                <Label.VerticalAlignment>Top</Label.VerticalAlignment>
+                <Grid.Column>0</Grid.Column>
+                <Grid.Row>1</Grid.Row>
+                <Label.Content>Face detection method</Label.Content>
+            </Label>
+            <RadioButton>
+                <Grid.Column>2</Grid.Column>
+                <Grid.Row>1</Grid.Row>
+                <RadioButton.Content>HOG Feature</RadioButton.Content>
+                <RadioButton.GroupName>FaceDetectionOption</RadioButton.GroupName>
+                <RadioButton.IsChecked>
+                    <Binding>
+                        <Binding.ConverterParameter>
+                            <x:Static Member="local:FaceDetectionOption.Hog" />
+                        </Binding.ConverterParameter>
+                        <Binding.Path>FaceDetection</Binding.Path>
+                        <Binding.Converter>
+                            <local:EnumToBooleanConverter />
+                        </Binding.Converter>
+                    </Binding>
+                </RadioButton.IsChecked>
+            </RadioButton>
+            <RadioButton>
+                <Grid.Column>2</Grid.Column>
+                <Grid.Row>2</Grid.Row>
+                <RadioButton.GroupName>FaceDetectionOption</RadioButton.GroupName>
+                <RadioButton.Content>Haar Cascade</RadioButton.Content>
+                <RadioButton.IsChecked>
+                    <Binding>
+                        <Binding.ConverterParameter>
+                            <x:Static Member="local:FaceDetectionOption.Haar" />
+                        </Binding.ConverterParameter>
+                        <Binding.Path>FaceDetection</Binding.Path>
+                        <Binding.Converter>
+                            <local:EnumToBooleanConverter />
+                        </Binding.Converter>
+                    </Binding>
+                </RadioButton.IsChecked>
+            </RadioButton>
+            <Button>
+                <Button.HorizontalAlignment>Left</Button.HorizontalAlignment>
+                <Grid.Column>0</Grid.Column>
+                <Grid.Row>3</Grid.Row>
+                <Button.Content>Predict</Button.Content>
+                <Button.Command>local:Commands.Predict</Button.Command>
+            </Button>
+            <RadioButton>
+                <Grid.Column>1</Grid.Column>
+                <Grid.Row>3</Grid.Row>
+                <RadioButton.Content>Gender</RadioButton.Content>
+                <RadioButton.GroupName>PredictOption</RadioButton.GroupName>
+                <RadioButton.IsChecked>
+                    <Binding>
+                        <Binding.ConverterParameter>
+                            <x:Static Member="annotation:AnnotationOption.Gender" />
+                        </Binding.ConverterParameter>
+                        <Binding.Path>Annotation</Binding.Path>
+                        <Binding.Converter>
+                            <local:EnumToBooleanConverter />
+                        </Binding.Converter>
+                    </Binding>
+                </RadioButton.IsChecked>
+            </RadioButton>
+            <RadioButton>
+                <Grid.Column>2</Grid.Column>
+                <Grid.Row>3</Grid.Row>
+                <RadioButton.Content>Age</RadioButton.Content>
+                <RadioButton.GroupName>PredictOption</RadioButton.GroupName>
+                <RadioButton.IsChecked>
+                    <Binding>
+                        <Binding.ConverterParameter>
+                            <x:Static Member="annotation:AnnotationOption.Age" />
+                        </Binding.ConverterParameter>
+                        <Binding.Path>Annotation</Binding.Path>
+                        <Binding.Converter>
+                            <local:EnumToBooleanConverter />
+                        </Binding.Converter>
+                    </Binding>
+                </RadioButton.IsChecked>
+            </RadioButton>
+            <RadioButton>
+                <Grid.Column>3</Grid.Column>
+                <Grid.Row>3</Grid.Row>
+                <RadioButton.Content>Both</RadioButton.Content>
+                <RadioButton.GroupName>PredictOption</RadioButton.GroupName>
+                <RadioButton.IsChecked>
+                    <Binding>
+                        <Binding.ConverterParameter>
+                            <x:Static Member="annotation:AnnotationOption.Both" />
+                        </Binding.ConverterParameter>
+                        <Binding.Path>Annotation</Binding.Path>
+                        <Binding.Converter>
+                            <local:EnumToBooleanConverter />
+                        </Binding.Converter>
+                    </Binding>
+                </RadioButton.IsChecked>
+            </RadioButton>
+        </Grid>
+        <Rectangle>
+            <Rectangle.Opacity>0.7</Rectangle.Opacity>
+            <Rectangle.StrokeThickness>0</Rectangle.StrokeThickness>
+            <Rectangle.Stroke>Black</Rectangle.Stroke>
+            <Rectangle.Fill>
+                <DynamicResource ResourceKey="{x:Static SystemColors.ControlLightLightBrushKey}" />
+            </Rectangle.Fill>
+            <Rectangle.Visibility>
+                <Binding>
+                    <Binding.Path>IsProcessing</Binding.Path>
+                    <Binding.Converter>
+                        <local:VisibilityToBooleanConverter />
+                    </Binding.Converter>
+                </Binding>
+            </Rectangle.Visibility>
+        </Rectangle>
+        <local:AnimatedGIFControl x:Name="GifCtrl">
+            <local:AnimatedGIFControl.Visibility>
+                <Binding>
+                    <Binding.Path>IsProcessing</Binding.Path>
+                    <Binding.Converter>
+                        <local:VisibilityToBooleanConverter />
+                    </Binding.Converter>
+                </Binding>
+            </local:AnimatedGIFControl.Visibility>
+        </local:AnimatedGIFControl>
     </Grid>
 </Window>
